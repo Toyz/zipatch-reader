@@ -61,19 +61,70 @@ pub const Deld = struct {
         const output_path = try fs_path.join(allocator, &[_][]const u8{ output_dir, self.path[0..self.path_size] });
         defer allocator.free(output_path);
 
-        fs.cwd().deleteDir(output_path) catch |err| {
+        log.info("Deleting path: {s}", .{output_path});
+
+        // First try to open as a directory
+        var dir = fs.cwd().openDir(output_path, .{}) catch |err| {
             if (err == error.FileNotFound or err == error.PathNotFound) {
-                log.info("Directory does not exist for deletion: {s}", .{output_path});
+                log.info("Directory not found: {s}", .{output_path});
                 return;
             }
-            if (err == error.DirNotEmpty) {
-                log.warn("Directory not empty, cannot delete: {s}", .{output_path});
-                return err;
+
+            if (err == error.NotDir) {
+                // It's a file, not a directory
+                log.info("Path is a file, deleting file: {s}", .{output_path});
+                fs.cwd().deleteFile(output_path) catch |file_err| {
+                    log.err("Failed to delete file: {s}, error: {}", .{ output_path, file_err });
+                    return file_err;
+                };
+                log.info("Successfully deleted file: {s}", .{output_path});
+                return;
             }
-            log.err("Failed to delete directory: {s}, error: {}", .{ output_path, err });
+
+            log.err("Failed to open directory: {s}, error: {}", .{ output_path, err });
             return err;
         };
+        defer dir.close();
 
-        log.info("Successfully deleted directory: {s}", .{output_path});
+        // If we got here, it's a directory that exists and we need to delete it recursively
+        try deleteDirectoryRecursively(output_path, allocator);
+        log.info("Successfully deleted directory and its contents: {s}", .{output_path});
     }
 };
+
+/// Recursively deletes a directory and all its contents
+/// path: Path to the directory to delete
+/// allocator: Memory allocator for path operations
+/// Returns: void on success or error on failure
+fn deleteDirectoryRecursively(path: []const u8, allocator: Allocator) !void {
+    var dir = fs.cwd().openDir(path, .{ .iterate = true }) catch |err| {
+        log.err("Failed to open directory for deletion: {s}, error: {}", .{ path, err });
+        return err;
+    };
+    defer dir.close();
+
+    var it = dir.iterate();
+    while (try it.next()) |entry| {
+        const entry_path = try fs.path.join(allocator, &[_][]const u8{ path, entry.name });
+        defer allocator.free(entry_path);
+
+        switch (entry.kind) {
+            .file => {
+                dir.deleteFile(entry.name) catch |err| {
+                    log.err("Failed to delete file: {s}, error: {}", .{ entry_path, err });
+                };
+            },
+            .directory => {
+                try deleteDirectoryRecursively(entry_path, allocator);
+            },
+            else => {
+                log.warn("Skipping non-file/directory entry: {s}", .{entry_path});
+            },
+        }
+    }
+
+    fs.cwd().deleteDir(path) catch |err| {
+        log.err("Failed to delete directory after emptying: {s}, error: {}", .{ path, err });
+        return err;
+    };
+}
