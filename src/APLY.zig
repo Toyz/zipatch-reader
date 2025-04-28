@@ -25,22 +25,12 @@ pub const Aply = struct {
         log.debug("Parsing APLY from bytes: {x}", .{bytes});
 
         var value1: [4]u8 = undefined;
-        value1[0] = bytes[0];
-        value1[1] = bytes[1];
-        value1[2] = bytes[2];
-        value1[3] = bytes[3];
-
         var value2: [4]u8 = undefined;
-        value2[0] = bytes[4];
-        value2[1] = bytes[5];
-        value2[2] = bytes[6];
-        value2[3] = bytes[7];
-
         var value3: [4]u8 = undefined;
-        value3[0] = bytes[8];
-        value3[1] = bytes[9];
-        value3[2] = bytes[10];
-        value3[3] = bytes[11];
+
+        @memcpy(&value1, bytes[0..4]);
+        @memcpy(&value2, bytes[4..8]);
+        @memcpy(&value3, bytes[8..12]);
 
         return Aply{
             .value1 = value1,

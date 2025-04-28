@@ -60,16 +60,10 @@ pub const Fhdr = struct {
         log.debug("Parsing FHDR from bytes: {x}", .{bytes});
 
         var version: [4]u8 = undefined;
-        version[0] = bytes[0];
-        version[1] = bytes[1];
-        version[2] = bytes[2];
-        version[3] = bytes[3];
-
         var result_bytes: [4]u8 = undefined;
-        result_bytes[0] = bytes[4];
-        result_bytes[1] = bytes[5];
-        result_bytes[2] = bytes[6];
-        result_bytes[3] = bytes[7];
+
+        @memcpy(&version, bytes[0..4]);
+        @memcpy(&result_bytes, bytes[4..8]);
 
         const number_entry_file = mem.readInt(u32, bytes[8..12], .big);
         const number_add_dir = mem.readInt(u32, bytes[12..16], .big);
