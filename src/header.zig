@@ -46,15 +46,7 @@ pub const BlockType = enum(u32) {
     ///
     /// Returns: String representation of the block type
     pub fn toString(self: BlockType) []const u8 {
-        return switch (self) {
-            .FHDR => "FHDR",
-            .APLY => "APLY",
-            .APFS => "APFS",
-            .ETRY => "ETRY",
-            .ADIR => "ADIR",
-            .DELD => "DELD",
-            .unknown => "unknown",
-        };
+        return @tagName(self);
     }
 };
 

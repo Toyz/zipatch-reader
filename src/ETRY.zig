@@ -32,12 +32,7 @@ pub const ChunkMode = enum(u32) {
     ///
     /// Returns: String representation of the chunk mode
     pub fn toString(self: ChunkMode) []const u8 {
-        return switch (self) {
-            .add => "ADD",
-            .delete => "DELETE",
-            .modify => "MODIFY",
-            .unknown => "UNKNOWN_MODE",
-        };
+        return @tagName(self);
     }
 };
 
@@ -65,11 +60,7 @@ pub const CompressionMode = enum(u32) {
     ///
     /// Returns: String representation of the compression mode
     pub fn toString(self: CompressionMode) []const u8 {
-        return switch (self) {
-            .none => "NONE",
-            .zlib => "ZLIB",
-            .unknown => "UNKNOWN_COMPRESSION",
-        };
+        return @tagName(self);
     }
 };
 
