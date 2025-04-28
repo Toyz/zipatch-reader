@@ -29,11 +29,7 @@ pub const FhdrResultType = enum {
     ///
     /// Returns: String representation of the result type
     pub fn toString(self: FhdrResultType) []const u8 {
-        return switch (self) {
-            .diff => "DIFF",
-            .hist => "HIST",
-            .unknown => "UNKNOWN",
-        };
+        return @tagName(self);
     }
 };
 

@@ -32,7 +32,6 @@ pub const Adir = struct {
         const path_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
-        // Safety check to prevent allocation of unreasonably large paths
         if (path_size > 1024) {
             log.warn("Path size too large: {}", .{path_size});
             return error.PathSizeTooLarge;
@@ -46,7 +45,7 @@ pub const Adir = struct {
 
         var path = try allocator.alloc(u8, path_size + 1);
         @memcpy(path[0..path_size], bytes[offset .. offset + path_size]);
-        path[path_size] = 0; // Null-terminate the string
+        path[path_size] = 0;
         offset += path_size;
 
         return Adir{

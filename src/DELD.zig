@@ -32,7 +32,6 @@ pub const Deld = struct {
         const path_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
-        // Safety check to prevent allocation of unreasonably large paths
         if (path_size > 1024) {
             log.warn("Path size too large: {}", .{path_size});
             return error.PathSizeTooLarge;
@@ -46,7 +45,7 @@ pub const Deld = struct {
 
         var path = try allocator.alloc(u8, path_size + 1);
         @memcpy(path[0..path_size], bytes[offset .. offset + path_size]);
-        path[path_size] = 0; // Null-terminate the string
+        path[path_size] = 0;
         offset += path_size;
 
         return Deld{
@@ -70,7 +69,6 @@ pub const Deld = struct {
 
         log.info("Deleting path: {s}", .{output_path});
 
-        // First try to open as a directory
         var dir = fs.cwd().openDir(output_path, .{}) catch |err| {
             if (err == error.FileNotFound or err == error.PathNotFound) {
                 log.info("Directory not found: {s}", .{output_path});
@@ -78,7 +76,6 @@ pub const Deld = struct {
             }
 
             if (err == error.NotDir) {
-                // It's a file, not a directory
                 log.info("Path is a file, deleting file: {s}", .{output_path});
                 fs.cwd().deleteFile(output_path) catch |file_err| {
                     log.err("Failed to delete file: {s}, error: {}", .{ output_path, file_err });
@@ -93,7 +90,6 @@ pub const Deld = struct {
         };
         defer dir.close();
 
-        // If we got here, it's a directory that exists and we need to delete it recursively
         try deleteDirectoryRecursively(output_path, allocator);
         log.info("Successfully deleted directory and its contents: {s}", .{output_path});
     }

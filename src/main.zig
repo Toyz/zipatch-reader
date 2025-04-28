@@ -29,12 +29,10 @@ pub const log_level: std.log.Level = .info;
 
 /// Main entry point for the ZiPatch reader application
 pub fn main() !void {
-    // Set up allocator
     var gpa = heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer _ = gpa.deinit();
 
-    // Define and parse command line arguments
     try handleCommandLineArgs(allocator);
 }
 
@@ -45,9 +43,9 @@ fn handleCommandLineArgs(allocator: Allocator) !void {
         \\-f, --file <str>        Path to the ZiPatch file to process.
         \\-o, --output <str>      Output directory for extracted files.
         \\-x, --extract           Extract files from the patch.
-        \\-v, --verbose           Enable verbose output.
         \\-d, --directory <str>   Process all .patch files in the specified directory.
         \\-r, --recursive         Recursively search for .patch files in subdirectories.
+        \\-t, --table             Display a table of all files in the patch.
         \\
     );
 
@@ -61,46 +59,40 @@ fn handleCommandLineArgs(allocator: Allocator) !void {
     };
     defer res.deinit();
 
-    // Display help if requested
     if (res.args.help != 0) {
         try printUsage();
         return;
     }
 
-    // Initialize options with defaults
     const options = ExtractOptions{
         .file_path = if (res.args.file) |f| f else "D2010.09.18.0000.patch",
         .output_dir = if (res.args.output) |o| o else "output",
-        .extract_files = true,
-        .verbose = res.args.verbose != 0,
+        .extract_files = res.args.extract != 0,
         .recursive_search = res.args.recursive != 0,
         .process_directory = res.args.directory,
+        .show_table = res.args.table != 0,
     };
 
-    // Create output directory
     try createOutputDir(options.output_dir);
 
-    // Process files based on options
     if (options.process_directory) |dir_path| {
-        try processAllPatchesInDirectory(dir_path, options.output_dir, options.extract_files, options.verbose, options.recursive_search, allocator);
+        try processAllPatchesInDirectory(dir_path, options.output_dir, options.extract_files, options.recursive_search, allocator);
     } else {
-        try processPatchFile(options.file_path, options.output_dir, options.extract_files, options.verbose, allocator);
+        try processPatchFile(options.file_path, options.output_dir, options.extract_files, options, allocator);
     }
 
     log.info("All operations completed successfully.", .{});
 }
 
-/// Options for extracting ZiPatch files
 const ExtractOptions = struct {
     file_path: []const u8,
     output_dir: []const u8,
     extract_files: bool,
-    verbose: bool,
     recursive_search: bool,
     process_directory: ?[]const u8,
+    show_table: bool,
 };
 
-/// Creates the output directory if it doesn't exist
 fn createOutputDir(output_dir: []const u8) !void {
     log.info("Extracting files to: {s}", .{output_dir});
 
@@ -112,8 +104,7 @@ fn createOutputDir(output_dir: []const u8) !void {
     };
 }
 
-/// Processes a single ZiPatch file
-fn processPatchFile(file_path: []const u8, output_dir: []const u8, extract_files: bool, verbose: bool, allocator: Allocator) !void {
+fn processPatchFile(file_path: []const u8, output_dir: []const u8, extract_files: bool, options: ExtractOptions, allocator: Allocator) !void {
     log.info("Processing file: {s}", .{file_path});
 
     const file = fs.cwd().openFile(file_path, .{ .mode = .read_only }) catch |err| {
@@ -123,12 +114,12 @@ fn processPatchFile(file_path: []const u8, output_dir: []const u8, extract_files
     defer file.close();
 
     try verifyZipatchMagic(file, file_path);
-    try processZipatchBlocks(file, file_path, output_dir, extract_files, verbose, allocator);
+
+    try processZipatchBlocks(file, file_path, output_dir, extract_files, options.show_table, allocator);
 
     log.info("Finished processing file: {s}", .{file_path});
 }
 
-/// Verifies the ZiPatch file magic number
 fn verifyZipatchMagic(file: fs.File, file_path: []const u8) !void {
     const reader = file.reader();
 
@@ -140,7 +131,6 @@ fn verifyZipatchMagic(file: fs.File, file_path: []const u8) !void {
         return error.UnexpectedEndOfFile;
     }
 
-    // Compare the entire header buffer with ZipatchFileMagic
     if (!mem.eql(u8, &header_buffer, &ZipatchFileMagic)) {
         log.err("File '{s}' header does not contain the expected ZiPatch file type sequence.", .{file_path});
         log.err("Header read: {any}", .{std.fmt.fmtSliceHexUpper(&header_buffer)});
@@ -151,16 +141,23 @@ fn verifyZipatchMagic(file: fs.File, file_path: []const u8) !void {
     log.info("Successfully verified ZiPatch file type header.", .{});
 }
 
-/// Processes the blocks in a ZiPatch file
-fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []const u8, extract_files: bool, verbose: bool, allocator: Allocator) !void {
-    _ = file_path; // autofix
+fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []const u8, extract_files: bool, show_table: bool, allocator: Allocator) !void {
+    _ = file_path;
     const reader = file.reader();
 
-    while (true) {
-        if (verbose) {
-            log.debug("Reader position before reading BlockInfo: {}", .{try file.getPos()});
+    var entries = std.ArrayList(Etry).init(allocator);
+    defer {
+        for (entries.items) |*etry| {
+            for (etry.chunks) |chunk| {
+                allocator.free(chunk.data);
+            }
+            allocator.free(etry.chunks);
+            allocator.free(etry.path);
         }
+        entries.deinit();
+    }
 
+    while (true) {
         const block_info = BlockInfo.read(reader) catch |err| {
             switch (err) {
                 error.EndOfStream => {
@@ -178,10 +175,6 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
             }
         };
 
-        if (verbose) {
-            log.debug("Reader position after reading BlockInfo: {}", .{try file.getPos()});
-        }
-
         if (block_info.block_type == .unknown) {
             log.err("Unknown block type found: {s} (Size: {})", .{ block_info.block_type.toString(), block_info.size });
             return error.UnknownBlockType;
@@ -189,144 +182,15 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
 
         log.info("Found block type: {s}, Size: {}", .{ block_info.block_type.toString(), block_info.size });
 
-        try processBlockPayload(reader, block_info, output_dir, extract_files, verbose, allocator);
+        try processBlockPayload(reader, block_info, output_dir, extract_files, show_table, &entries, allocator);
+    }
+
+    if (show_table and entries.items.len > 0) {
+        try displayEtryTable(&entries, allocator);
     }
 }
 
-/// Block handler interface for processing different block types
-const BlockHandler = struct {
-    /// Type of data this handler processes
-    type: BlockType,
-
-    /// Function to parse and process block payload
-    processPayloadFn: *const fn (payload: []const u8, output_dir: []const u8, extract_files: bool, verbose: bool, allocator: Allocator) anyerror!void,
-
-    /// Name of the block type (for logging)
-    name: []const u8,
-};
-
-/// Comptime map of block types to their handlers
-const block_handlers = blk: {
-    const handlers = [_]BlockHandler{
-        // FHDR handler
-        .{
-            .type = .FHDR,
-            .name = "FHDR",
-            .processPayloadFn = struct {
-                fn process(payload: []const u8, _: []const u8, _: bool, _: bool, _: Allocator) !void {
-                    const fhdr = try Fhdr.parseFromBytes(payload);
-                    log.info("FHDR block data: {any}", .{fhdr});
-                }
-            }.process,
-        },
-
-        // APLY handler
-        .{
-            .type = .APLY,
-            .name = "APLY",
-            .processPayloadFn = struct {
-                fn process(payload: []const u8, _: []const u8, _: bool, _: bool, _: Allocator) !void {
-                    const aply = try Aply.parseFromBytes(payload);
-                    log.info("APLY block data: {any}", .{aply});
-                }
-            }.process,
-        },
-
-        // ADIR handler
-        .{
-            .type = .ADIR,
-            .name = "ADIR",
-            .processPayloadFn = struct {
-                fn process(payload: []const u8, output_dir: []const u8, extract_files: bool, _: bool, allocator: Allocator) !void {
-                    var adir = try Adir.parseFromBytes(payload, allocator);
-                    defer allocator.free(adir.path);
-                    log.info("ADIR block: Create directory: {s}", .{adir.path[0..adir.path_size]});
-                    if (extract_files) {
-                        try adir.createDirectory(output_dir, allocator);
-                    }
-                }
-            }.process,
-        },
-
-        // DELD handler
-        .{
-            .type = .DELD,
-            .name = "DELD",
-            .processPayloadFn = struct {
-                fn process(payload: []const u8, output_dir: []const u8, extract_files: bool, _: bool, allocator: Allocator) !void {
-                    var deld = try Deld.parseFromBytes(payload, allocator);
-                    defer allocator.free(deld.path);
-                    log.info("DELD block: Delete directory: {s}", .{deld.path[0..deld.path_size]});
-                    if (extract_files) {
-                        try deld.deleteDirectory(output_dir, allocator);
-                    }
-                }
-            }.process,
-        },
-
-        // ETRY handler
-        .{
-            .type = .ETRY,
-            .name = "ETRY",
-            .processPayloadFn = struct {
-                fn process(payload: []const u8, output_dir: []const u8, extract_files: bool, verbose: bool, allocator: Allocator) !void {
-                    var etry = try Etry.parseFromBytes(payload, allocator);
-                    defer allocator.free(etry.path);
-                    log.info("ETRY block: Path: {s}, Size: {}, Chunks: {}", .{ etry.path[0..etry.path_size], etry.path_size, etry.count });
-                    if (verbose) {
-                        log.debug("Extract files flag: {}", .{extract_files});
-                    }
-                    if (extract_files) {
-                        log.info("Attempting to extract file: {s} with {} chunks", .{ etry.path[0..etry.path_size], etry.chunks.len });
-                        if (etry.chunks.len == 0) {
-                            log.warn("No chunks found for file: {s}", .{etry.path[0..etry.path_size]});
-                        } else {
-                            try etry.saveAllChunks(output_dir, allocator);
-                            log.info("Extracted file: {s}", .{etry.path[0..etry.path_size]});
-                        }
-                    }
-                    for (etry.chunks) |chunk| {
-                        allocator.free(chunk.data);
-                    }
-                    allocator.free(etry.chunks);
-                }
-            }.process,
-        },
-
-        // APFS handler (placeholder - just logs)
-        .{
-            .type = .APFS,
-            .name = "APFS",
-            .processPayloadFn = struct {
-                fn process(_: []const u8, _: []const u8, _: bool, _: bool, _: Allocator) !void {
-                    log.info("Payload data read for APFS block. No specific processing implemented.", .{});
-                }
-            }.process,
-        },
-    };
-
-    // Generate a map from block type to handler at compile time
-    // Use a fixed size array based on the known block types
-    var map: [7]?BlockHandler = [_]?BlockHandler{null} ** 7;
-
-    // Manually assign handlers to their corresponding positions
-    for (handlers) |handler| {
-        switch (handler.type) {
-            .FHDR => map[0] = handler,
-            .APLY => map[1] = handler,
-            .ADIR => map[2] = handler,
-            .DELD => map[3] = handler,
-            .ETRY => map[4] = handler,
-            .APFS => map[5] = handler,
-            .unknown => map[6] = handler,
-        }
-    }
-
-    break :blk map;
-};
-
-/// Processes a block payload based on its type using comptime handler map
-fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []const u8, extract_files: bool, verbose: bool, allocator: Allocator) !void {
+fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []const u8, extract_files: bool, show_table: bool, entries: *std.ArrayList(Etry), allocator: Allocator) !void {
     const payload_size = block_info.size;
     const payload_buffer = try allocator.alloc(u8, payload_size);
     defer allocator.free(payload_buffer);
@@ -338,31 +202,66 @@ fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []con
         return error.UnexpectedEndOfFile;
     }
 
-    const block_type = block_info.block_type;
+    switch (block_info.block_type) {
+        .FHDR => {
+            const fhdr = try Fhdr.parseFromBytes(payload_buffer);
+            log.info("FHDR block data: {any}", .{fhdr});
+        },
+        .APLY => {
+            const aply = try Aply.parseFromBytes(payload_buffer);
+            log.info("APLY block data: {any}", .{aply});
+        },
+        .ADIR => {
+            var adir = try Adir.parseFromBytes(payload_buffer, allocator);
+            defer allocator.free(adir.path);
+            log.info("ADIR block: Create directory: {s}", .{adir.path[0..adir.path_size]});
+            if (extract_files) {
+                try adir.createDirectory(output_dir, allocator);
+            }
+        },
+        .DELD => {
+            var deld = try Deld.parseFromBytes(payload_buffer, allocator);
+            defer allocator.free(deld.path);
+            log.info("DELD block: Delete directory: {s}", .{deld.path[0..deld.path_size]});
+            if (extract_files) {
+                try deld.deleteDirectory(output_dir, allocator);
+            }
+        },
+        .ETRY => {
+            var etry = try Etry.parseFromBytes(payload_buffer, allocator);
 
-    // Find the correct handler based on block type
-    var handler: ?BlockHandler = null;
-    switch (block_type) {
-        .FHDR => handler = block_handlers[0],
-        .APLY => handler = block_handlers[1],
-        .ADIR => handler = block_handlers[2],
-        .DELD => handler = block_handlers[3],
-        .ETRY => handler = block_handlers[4],
-        .APFS => handler = block_handlers[5],
-        .unknown => handler = block_handlers[6],
+            log.info("ETRY block: Path: {s}, Size: {}, Chunks: {}", .{ etry.path[0..etry.path_size], etry.path_size, etry.count });
+
+            if (show_table and etry.chunks.len > 0) {
+                try entries.append(etry);
+            } else if (extract_files) {
+                log.info("Attempting to extract file: {s} with {} chunks", .{ etry.path[0..etry.path_size], etry.chunks.len });
+                if (etry.chunks.len == 0) {
+                    log.warn("No chunks found for file: {s}", .{etry.path[0..etry.path_size]});
+                } else {
+                    try etry.saveAllChunks(output_dir, allocator);
+                    log.info("Extracted file: {s}", .{etry.path[0..etry.path_size]});
+                }
+
+                allocator.free(etry.path);
+                for (etry.chunks) |chunk| {
+                    allocator.free(chunk.data);
+                }
+                allocator.free(etry.chunks);
+            }
+        },
+        .APFS => {
+            log.info("Payload data read for APFS block. No specific processing implemented.", .{});
+        },
+        .unknown => {
+            log.info("Payload data read for unknown block type. No specific processing implemented.", .{});
+        },
     }
 
-    if (handler) |h| {
-        try h.processPayloadFn(payload_buffer, output_dir, extract_files, verbose, allocator);
-    } else {
-        log.info("Payload data read for block type {s}. No specific processing implemented.", .{block_info.block_type.toString()});
-    }
-
-    try processCrc(reader, block_info, verbose);
+    try processCrc(reader, block_info);
 }
 
-/// Processes the CRC at the end of a block
-fn processCrc(reader: anytype, block_info: BlockInfo, verbose: bool) !void {
+fn processCrc(reader: anytype, block_info: BlockInfo) !void {
     var crc_buffer: [4]u8 = undefined;
     const bytes_read_crc = try reader.readAll(&crc_buffer);
 
@@ -373,14 +272,9 @@ fn processCrc(reader: anytype, block_info: BlockInfo, verbose: bool) !void {
 
     const crc = mem.readInt(u32, crc_buffer[0..4], .big);
     _ = crc;
-
-    if (verbose) {
-        log.debug("CRC value read: {x}", .{crc_buffer});
-    }
 }
 
-/// Processes all ZiPatch files in a directory
-fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, extract_files: bool, verbose: bool, recursive_search: bool, allocator: Allocator) !void {
+fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, extract_files: bool, recursive_search: bool, allocator: Allocator) !void {
     log.info("Searching for .patch files in directory: {s}", .{dir_path});
 
     var dir = fs.cwd().openDir(dir_path, .{ .iterate = true }) catch |err| {
@@ -392,22 +286,28 @@ fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, ex
     var it = dir.iterate();
     var patch_count: usize = 0;
 
+    const options = ExtractOptions{
+        .file_path = "",
+        .output_dir = output_dir,
+        .extract_files = extract_files,
+        .recursive_search = recursive_search,
+        .process_directory = null,
+        .show_table = false,
+    };
+
     while (try it.next()) |entry| {
-        // Handle subdirectories if recursive search is enabled
         if (entry.kind == .directory and recursive_search) {
             const subdir_path = try fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
             defer allocator.free(subdir_path);
 
-            processAllPatchesInDirectory(subdir_path, output_dir, extract_files, verbose, recursive_search, allocator) catch |err| {
+            processAllPatchesInDirectory(subdir_path, output_dir, extract_files, recursive_search, allocator) catch |err| {
                 log.err("Failed to process subdirectory: {s}, error: {}", .{ subdir_path, err });
-                // Continue processing other directories even if one fails
             };
             continue;
         }
 
         if (entry.kind != .file) continue;
 
-        // Check if file has .patch extension
         if (!mem.endsWith(u8, entry.name, ".patch")) continue;
 
         const file_path = try fs.path.join(allocator, &[_][]const u8{ dir_path, entry.name });
@@ -416,9 +316,11 @@ fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, ex
         log.info("Found patch file: {s}", .{entry.name});
         patch_count += 1;
 
-        processPatchFile(file_path, output_dir, extract_files, verbose, allocator) catch |err| {
+        var file_options = options;
+        file_options.file_path = file_path;
+
+        processPatchFile(file_path, output_dir, extract_files, file_options, allocator) catch |err| {
             log.err("Failed to process patch file: {s}, error: {}", .{ file_path, err });
-            // Continue processing other files even if one fails
         };
     }
 
@@ -429,7 +331,89 @@ fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, ex
     }
 }
 
-/// Prints usage information for the command-line interface
+/// Formats and displays ETRY information in a table
+fn displayEtryTable(entries: *const std.ArrayList(Etry), allocator: Allocator) !void {
+    const stdout = std.io.getStdOut();
+    var bw = std.io.bufferedWriter(stdout.writer());
+    const writer = bw.writer();
+
+    try writer.print("\nFiles in patch: {d}\n", .{entries.items.len});
+
+    if (entries.items.len == 0) {
+        try writer.writeAll("No files found in the patch.\n");
+        try bw.flush();
+        return;
+    }
+
+    var max_path_len: usize = 9;
+    for (entries.items) |etry| {
+        max_path_len = @max(max_path_len, etry.path_size);
+    }
+    max_path_len += 2;
+
+    try writer.writeAll("INDEX | FILE PATH");
+    for (0..max_path_len - 9) |_| try writer.writeByte(' ');
+    try writer.writeAll(" | SIZE       | CHUNKS | MODE   | PREV HASH                               | NEXT HASH\n");
+
+    try writer.writeAll("------+");
+    for (0..max_path_len + 2) |_| try writer.writeByte('-');
+    try writer.writeAll("+------------+--------+--------+----------------------------------------+----------------------------------------\n");
+
+    for (entries.items, 0..) |etry, index| {
+        if (etry.chunks.len == 0) continue;
+
+        const first_chunk = etry.chunks[0];
+        const last_chunk = etry.chunks[etry.chunks.len - 1];
+
+        const prev_hash_str = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexUpper(&first_chunk.prev_hash)});
+        defer allocator.free(prev_hash_str);
+
+        const next_hash_str = try std.fmt.allocPrint(allocator, "{s}", .{std.fmt.fmtSliceHexUpper(&last_chunk.next_hash)});
+        defer allocator.free(next_hash_str);
+
+        const size_str = try formatSize(last_chunk.next_size, allocator);
+        defer allocator.free(size_str);
+
+        try writer.print("{d:5} | ", .{index});
+
+        try writer.writeAll(etry.path[0..etry.path_size]);
+        for (0..max_path_len - etry.path_size) |_| try writer.writeByte(' ');
+
+        try writer.print(" | {s:10} | {d:6} | {s:6} | {s:38} | {s:38}\n", .{
+            size_str,
+            etry.chunks.len,
+            first_chunk.mode.toString(),
+            prev_hash_str,
+            next_hash_str,
+        });
+    }
+
+    try writer.writeAll("\n");
+    try bw.flush();
+}
+
+/// Formats a byte size into a human-readable string (B, KB, MB, GB)
+fn formatSize(size: u64, allocator: Allocator) ![]const u8 {
+    const units = [_][]const u8{ "B", "KB", "MB", "GB", "TB" };
+    var size_f: f64 = @floatFromInt(size);
+    var unit_index: usize = 0;
+
+    while (size_f >= 1024.0 and unit_index < units.len - 1) {
+        size_f /= 1024.0;
+        unit_index += 1;
+    }
+
+    if (unit_index == 0) {
+        return std.fmt.allocPrint(allocator, "{d} {s}", .{ @as(u64, @intFromFloat(size_f)), units[unit_index] });
+    } else {
+        if (size_f < 10) {
+            return std.fmt.allocPrint(allocator, "{d:.1} {s}", .{ size_f, units[unit_index] });
+        } else {
+            return std.fmt.allocPrint(allocator, "{d:.0} {s}", .{ size_f, units[unit_index] });
+        }
+    }
+}
+
 fn printUsage() !void {
     const usage =
         \\Usage: zipatch_reader [options]
@@ -438,10 +422,10 @@ fn printUsage() !void {
         \\  -h, --help              Display this help message
         \\  -f, --file <path>       Path to the ZiPatch file (default: D2010.09.18.0000.patch)
         \\  -o, --output <dir>      Output directory for extracted files (default: output)
-        \\  -x, --extract           Extract files from the patch (enabled by default)
-        \\  -v, --verbose           Enable verbose output
+        \\  -x, --extract           Extract files from the patch
         \\  -d, --directory <path>  Process all .patch files in the specified directory
         \\  -r, --recursive         Recursively search for .patch files in subdirectories
+        \\  -t, --table             Display a table of all files in the patch
         \\
     ;
     try io.getStdOut().writer().print("{s}", .{usage});
