@@ -1,0 +1,384 @@
+Successfully verified ZiPatch file type header.
+DEBUG: Reader position before reading BlockInfo: 12
+DEBUG: Reader position after reading BlockInfo: 24
+Found block type: FHDR, Size: 20, CRC: 200
+FHDR block data: FHDR.Fhdr{ .version = 1212765012, .result = FHDR.FhdrResultType.unknown, .number_entry_file = 0, .number_add_dir = 0, .number_delete_dir = 4180000429 }.
+
+DEBUG: Reader position before reading BlockInfo: 44
+DEBUG: Reader position after reading BlockInfo: 56
+Found block type: APLY, Size: 12, CRC: 1
+APLY block data: APLY.Aply{ .value1 = 67108864, .value2 = 16777216, .value3 = 1544657810 }.
+
+DEBUG: Reader position before reading BlockInfo: 68
+DEBUG: Reader position after reading BlockInfo: 80
+Found block type: APLY, Size: 12, CRC: 2
+APLY block data: APLY.Aply{ .value1 = 67108864, .value2 = 16777216, .value3 = 2569868971 }.
+
+DEBUG: Reader position before reading BlockInfo: 92
+DEBUG: Reader position after reading BlockInfo: 104
+Found block type: ETRY, Size: 8378, CRC: 2b
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 8482
+DEBUG: Reader position after reading BlockInfo: 8494
+Found block type: ETRY, Size: 88913, CRC: 31
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 97407
+DEBUG: Reader position after reading BlockInfo: 97419
+Found block type: ETRY, Size: 1634, CRC: 36
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 99053
+DEBUG: Reader position after reading BlockInfo: 99065
+Found block type: ETRY, Size: 1909, CRC: 39
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 100974
+DEBUG: Reader position after reading BlockInfo: 100986
+Found block type: ETRY, Size: 1744, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 102730
+DEBUG: Reader position after reading BlockInfo: 102742
+Found block type: ETRY, Size: 142, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 102884
+DEBUG: Reader position after reading BlockInfo: 102896
+Found block type: ETRY, Size: 420, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 103316
+DEBUG: Reader position after reading BlockInfo: 103328
+Found block type: ETRY, Size: 520, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 103848
+DEBUG: Reader position after reading BlockInfo: 103860
+Found block type: ETRY, Size: 1315, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 105175
+DEBUG: Reader position after reading BlockInfo: 105187
+Found block type: ETRY, Size: 142, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 105329
+DEBUG: Reader position after reading BlockInfo: 105341
+Found block type: ETRY, Size: 350, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 105691
+DEBUG: Reader position after reading BlockInfo: 105703
+Found block type: ETRY, Size: 1541, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 107244
+DEBUG: Reader position after reading BlockInfo: 107256
+Found block type: ETRY, Size: 142, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 107398
+DEBUG: Reader position after reading BlockInfo: 107410
+Found block type: ETRY, Size: 358, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 107768
+DEBUG: Reader position after reading BlockInfo: 107780
+Found block type: ETRY, Size: 1633, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 109413
+DEBUG: Reader position after reading BlockInfo: 109425
+Found block type: ETRY, Size: 142, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 109567
+DEBUG: Reader position after reading BlockInfo: 109579
+Found block type: ETRY, Size: 428, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 110007
+DEBUG: Reader position after reading BlockInfo: 110019
+Found block type: ETRY, Size: 178, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 110197
+DEBUG: Reader position after reading BlockInfo: 110209
+Found block type: ETRY, Size: 202, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 110411
+DEBUG: Reader position after reading BlockInfo: 110423
+Found block type: ETRY, Size: 376, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 110799
+DEBUG: Reader position after reading BlockInfo: 110811
+Found block type: ETRY, Size: 215, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 111026
+DEBUG: Reader position after reading BlockInfo: 111038
+Found block type: ETRY, Size: 105, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 111143
+DEBUG: Reader position after reading BlockInfo: 111155
+Found block type: ETRY, Size: 14176, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 125331
+DEBUG: Reader position after reading BlockInfo: 125343
+Found block type: ETRY, Size: 461, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 125804
+DEBUG: Reader position after reading BlockInfo: 125816
+Found block type: ETRY, Size: 2584, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 128400
+DEBUG: Reader position after reading BlockInfo: 128412
+Found block type: ETRY, Size: 17088, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 145500
+DEBUG: Reader position after reading BlockInfo: 145512
+Found block type: ETRY, Size: 220, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 145732
+DEBUG: Reader position after reading BlockInfo: 145744
+Found block type: ETRY, Size: 1090, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 146834
+DEBUG: Reader position after reading BlockInfo: 146846
+Found block type: ETRY, Size: 11989, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 158835
+DEBUG: Reader position after reading BlockInfo: 158847
+Found block type: ETRY, Size: 461, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 159308
+DEBUG: Reader position after reading BlockInfo: 159320
+Found block type: ETRY, Size: 2478, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 161798
+DEBUG: Reader position after reading BlockInfo: 161810
+Found block type: ETRY, Size: 16028, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 177838
+DEBUG: Reader position after reading BlockInfo: 177850
+Found block type: ETRY, Size: 220, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 178070
+DEBUG: Reader position after reading BlockInfo: 178082
+Found block type: ETRY, Size: 1084, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 179166
+DEBUG: Reader position after reading BlockInfo: 179178
+Found block type: ETRY, Size: 12738, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 191916
+DEBUG: Reader position after reading BlockInfo: 191928
+Found block type: ETRY, Size: 461, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 192389
+DEBUG: Reader position after reading BlockInfo: 192401
+Found block type: ETRY, Size: 2525, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 194926
+DEBUG: Reader position after reading BlockInfo: 194938
+Found block type: ETRY, Size: 15841, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 210779
+DEBUG: Reader position after reading BlockInfo: 210791
+Found block type: ETRY, Size: 220, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 211011
+DEBUG: Reader position after reading BlockInfo: 211023
+Found block type: ETRY, Size: 1094, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 212117
+DEBUG: Reader position after reading BlockInfo: 212129
+Found block type: ETRY, Size: 13544, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 225673
+DEBUG: Reader position after reading BlockInfo: 225685
+Found block type: ETRY, Size: 461, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 226146
+DEBUG: Reader position after reading BlockInfo: 226158
+Found block type: ETRY, Size: 2565, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 228723
+DEBUG: Reader position after reading BlockInfo: 228735
+Found block type: ETRY, Size: 13129, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 241864
+DEBUG: Reader position after reading BlockInfo: 241876
+Found block type: ETRY, Size: 220, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 242096
+DEBUG: Reader position after reading BlockInfo: 242108
+Found block type: ETRY, Size: 1049, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 243157
+DEBUG: Reader position after reading BlockInfo: 243169
+Found block type: ETRY, Size: 118, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 243287
+DEBUG: Reader position after reading BlockInfo: 243299
+Found block type: ETRY, Size: 92, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 243391
+DEBUG: Reader position after reading BlockInfo: 243403
+Found block type: ETRY, Size: 442, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 243845
+DEBUG: Reader position after reading BlockInfo: 243857
+Found block type: ETRY, Size: 104, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 243961
+DEBUG: Reader position after reading BlockInfo: 243973
+Found block type: ETRY, Size: 431, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 244404
+DEBUG: Reader position after reading BlockInfo: 244416
+Found block type: ETRY, Size: 104, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 244520
+DEBUG: Reader position after reading BlockInfo: 244532
+Found block type: ETRY, Size: 392, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 244924
+DEBUG: Reader position after reading BlockInfo: 244936
+Found block type: ETRY, Size: 104, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 245040
+DEBUG: Reader position after reading BlockInfo: 245052
+Found block type: ETRY, Size: 533, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 245585
+DEBUG: Reader position after reading BlockInfo: 245597
+Found block type: ETRY, Size: 104, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 245701
+DEBUG: Reader position after reading BlockInfo: 245713
+Found block type: ETRY, Size: 3350, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 249063
+DEBUG: Reader position after reading BlockInfo: 249075
+Found block type: ETRY, Size: 104, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 249179
+DEBUG: Reader position after reading BlockInfo: 249191
+Found block type: ETRY, Size: 489, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 249680
+DEBUG: Reader position after reading BlockInfo: 249692
+Found block type: ETRY, Size: 315, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 250007
+DEBUG: Reader position after reading BlockInfo: 250019
+Found block type: ETRY, Size: 127, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 250146
+DEBUG: Reader position after reading BlockInfo: 250158
+Found block type: ETRY, Size: 217, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 250375
+DEBUG: Reader position after reading BlockInfo: 250387
+Found block type: ETRY, Size: 303, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 250690
+DEBUG: Reader position after reading BlockInfo: 250702
+Found block type: ETRY, Size: 127, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 250829
+DEBUG: Reader position after reading BlockInfo: 250841
+Found block type: ETRY, Size: 215, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 251056
+DEBUG: Reader position after reading BlockInfo: 251068
+Found block type: ETRY, Size: 323, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 251391
+DEBUG: Reader position after reading BlockInfo: 251403
+Found block type: ETRY, Size: 127, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 251530
+DEBUG: Reader position after reading BlockInfo: 251542
+Found block type: ETRY, Size: 219, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 251761
+DEBUG: Reader position after reading BlockInfo: 251773
+Found block type: ETRY, Size: 333, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 252106
+DEBUG: Reader position after reading BlockInfo: 252118
+Found block type: ETRY, Size: 127, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 252245
+DEBUG: Reader position after reading BlockInfo: 252257
+Found block type: ETRY, Size: 219, CRC: 14
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 252476
+DEBUG: Reader position after reading BlockInfo: 252488
+Found block type: ETRY, Size: 4980104, CRC: d
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 5232592
+DEBUG: Reader position after reading BlockInfo: 5232604
+Found block type: ETRY, Size: 339083, CRC: 10
+  Payload data read into buffer. Add specific processing for block type ETRY.
+
+DEBUG: Reader position before reading BlockInfo: 5571687
+Error: Unexpected end of file while reading BlockInfo.
+Finished reading blocks until end of file.

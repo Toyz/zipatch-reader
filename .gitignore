@@ -1,0 +1,23 @@
+# Zig build artifacts
+zig-out/
+zig-cache/
+.zig-cache/*
+
+# Output directories with extracted files
+output/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Editor specific files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Patch files that might be large
+*.patch
+
+# Debug files
+*.pdb
