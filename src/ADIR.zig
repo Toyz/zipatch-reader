@@ -1,21 +1,24 @@
 const std = @import("std");
+const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
-const fs = std.fs;
-const fs_path = std.fs.path;
-const Allocator = std.mem.Allocator;
+const Allocator = mem.Allocator;
 
-/// Represents an Add Directory block in a ZiPatch file
-/// Used to create directories during patch application
+/// Represents an Add Directory (ADIR) block in a ZiPatch file.
+/// Used to create directories during patch application.
 pub const Adir = struct {
     /// Size of the directory path in bytes
     path_size: u32,
+
     /// Directory path as a null-terminated string
     path: []u8,
 
-    /// Parses an ADIR block from raw bytes
-    /// bytes: Raw payload data from the block
-    /// allocator: Memory allocator for path allocation
+    /// Parses an ADIR block from raw bytes.
+    ///
+    /// Parameters:
+    ///   bytes: Raw payload data from the block
+    ///   allocator: Memory allocator for path allocation
+    ///
     /// Returns: Parsed Adir structure or error
     pub fn parseFromBytes(bytes: []const u8, allocator: Allocator) !Adir {
         var offset: usize = 0;
@@ -29,6 +32,7 @@ pub const Adir = struct {
         const path_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
+        // Safety check to prevent allocation of unreasonably large paths
         if (path_size > 1024) {
             log.warn("Path size too large: {}", .{path_size});
             return error.PathSizeTooLarge;
@@ -42,7 +46,7 @@ pub const Adir = struct {
 
         var path = try allocator.alloc(u8, path_size + 1);
         @memcpy(path[0..path_size], bytes[offset .. offset + path_size]);
-        path[path_size] = 0;
+        path[path_size] = 0; // Null-terminate the string
         offset += path_size;
 
         return Adir{
@@ -51,14 +55,17 @@ pub const Adir = struct {
         };
     }
 
-    /// Creates the directory specified in the ADIR block
-    /// output_dir: Base output directory where the directory will be created
-    /// allocator: Memory allocator for path operations
+    /// Creates the directory specified in the ADIR block.
+    ///
+    /// Parameters:
+    ///   output_dir: Base output directory where the directory will be created
+    ///   allocator: Memory allocator for path operations
+    ///
     /// Returns: void on success or error on failure
     pub fn createDirectory(self: *const Adir, output_dir: []const u8, allocator: Allocator) !void {
         log.info("Creating directory: {s}", .{self.path[0..self.path_size]});
 
-        const output_path = try fs_path.join(allocator, &[_][]const u8{ output_dir, self.path[0..self.path_size] });
+        const output_path = try fs.path.join(allocator, &[_][]const u8{ output_dir, self.path[0..self.path_size] });
         defer allocator.free(output_path);
 
         fs.cwd().makePath(output_path) catch |err| {

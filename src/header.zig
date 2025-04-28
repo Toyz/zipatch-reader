@@ -12,20 +12,38 @@ pub const BlockType = enum(u32) {
     DELD,
     unknown,
 
-    /// Converts a 4-byte array to the corresponding BlockType
-    /// bytes: 4-byte array containing block type identifier
+    /// Converts a 4-byte array to the corresponding BlockType.
+    ///
+    /// Parameters:
+    ///   bytes: 4-byte array containing block type identifier
+    ///
     /// Returns: The corresponding BlockType or unknown if not recognized
     pub fn fromBytes(bytes: [4]u8) BlockType {
-        if (mem.eql(u8, &bytes, "FHDR")) return .FHDR;
-        if (mem.eql(u8, &bytes, "APLY")) return .APLY;
-        if (mem.eql(u8, &bytes, "APFS")) return .APFS;
-        if (mem.eql(u8, &bytes, "ETRY")) return .ETRY;
-        if (mem.eql(u8, &bytes, "ADIR")) return .ADIR;
-        if (mem.eql(u8, &bytes, "DELD")) return .DELD;
+        const lookup = comptime blk: {
+            const BytesAndType = struct { bytes: [4]u8, block_type: BlockType };
+            const pairs = [_]BytesAndType{
+                .{ .bytes = "FHDR".*, .block_type = .FHDR },
+                .{ .bytes = "APLY".*, .block_type = .APLY },
+                .{ .bytes = "APFS".*, .block_type = .APFS },
+                .{ .bytes = "ETRY".*, .block_type = .ETRY },
+                .{ .bytes = "ADIR".*, .block_type = .ADIR },
+                .{ .bytes = "DELD".*, .block_type = .DELD },
+            };
+
+            break :blk pairs;
+        };
+
+        for (lookup) |pair| {
+            if (mem.eql(u8, &bytes, &pair.bytes)) {
+                return pair.block_type;
+            }
+        }
+
         return .unknown;
     }
 
-    /// Converts a BlockType to its string representation
+    /// Converts a BlockType to its string representation.
+    ///
     /// Returns: String representation of the block type
     pub fn toString(self: BlockType) []const u8 {
         return switch (self) {
@@ -44,13 +62,18 @@ pub const BlockType = enum(u32) {
 pub const BlockInfo = struct {
     /// Size of the block payload in bytes
     size: u32,
+
     /// Type of the block
     block_type: BlockType,
+
     /// CRC checksum for the block
     crc: u32,
 
-    /// Reads block information from the provided reader
-    /// reader: The reader to read block information from
+    /// Reads block information from the provided reader.
+    ///
+    /// Parameters:
+    ///   reader: The reader to read block information from
+    ///
     /// Returns: BlockInfo structure or error
     pub fn read(reader: anytype) !BlockInfo {
         var header_buffer: [8]u8 = undefined;
@@ -60,23 +83,23 @@ pub const BlockInfo = struct {
             }
             return err;
         };
+
         if (bytes_read < 8) {
             return error.UnexpectedEndOfFile;
         }
 
+        // Read block size (first 4 bytes)
         const size = mem.readInt(u32, header_buffer[0..4], .big);
 
+        // Read block type (next 4 bytes)
         var type_bytes: [4]u8 = undefined;
-        type_bytes[0] = header_buffer[4];
-        type_bytes[1] = header_buffer[5];
-        type_bytes[2] = header_buffer[6];
-        type_bytes[3] = header_buffer[7];
+        @memcpy(&type_bytes, header_buffer[4..8]);
         const block_type = BlockType.fromBytes(type_bytes);
 
         return BlockInfo{
             .size = size,
             .block_type = block_type,
-            .crc = 0,
+            .crc = 0, // CRC will be read separately
         };
     }
 };

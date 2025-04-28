@@ -2,7 +2,6 @@ const std = @import("std");
 const log = std.log;
 const io = std.io;
 const mem = std.mem;
-const root = @import("root");
 
 /// Represents the result type in the FHDR block
 pub const FhdrResultType = enum {
@@ -10,23 +9,24 @@ pub const FhdrResultType = enum {
     hist,
     unknown,
 
-    /// Converts a 4-byte array to the corresponding FhdrResultType
-    /// bytes: 4-byte array containing result type identifier
+    /// Converts a 4-byte array to the corresponding FhdrResultType.
+    ///
+    /// Parameters:
+    ///   bytes: 4-byte array containing result type identifier
+    ///
     /// Returns: The corresponding FhdrResultType or unknown if not recognized
     pub fn fromBytes(bytes: [4]u8) FhdrResultType {
-        const DIFF_bytes: [4]u8 = .{ 'D', 'I', 'F', 'F' };
-        const HIST_bytes: [4]u8 = .{ 'H', 'I', 'S', 'T' };
-
-        if (mem.eql(u8, &bytes, &DIFF_bytes)) {
+        if (mem.eql(u8, &bytes, "DIFF")) {
             return .diff;
-        } else if (mem.eql(u8, &bytes, &HIST_bytes)) {
+        } else if (mem.eql(u8, &bytes, "HIST")) {
             return .hist;
-        } else {
-            return .unknown;
         }
+
+        return .unknown;
     }
 
-    /// Converts an FhdrResultType to its string representation
+    /// Converts an FhdrResultType to its string representation.
+    ///
     /// Returns: String representation of the result type
     pub fn toString(self: FhdrResultType) []const u8 {
         return switch (self) {
@@ -37,21 +37,29 @@ pub const FhdrResultType = enum {
     }
 };
 
-/// Represents a File Header (FHDR) block in a ZiPatch file
+/// Represents a File Header (FHDR) block in a ZiPatch file.
+/// Contains version and file count information for the patch.
 pub const Fhdr = struct {
     /// Version information for the patch
     version: [4]u8,
+
     /// Type of result (diff or hist)
     result: FhdrResultType,
+
     /// Number of entry files in the patch
     number_entry_file: u32,
+
     /// Number of directory add operations in the patch
     number_add_dir: u32,
+
     /// Number of directory delete operations in the patch
     number_delete_dir: u32,
 
-    /// Parses an FHDR block from raw bytes
-    /// bytes: Raw payload data from the block
+    /// Parses an FHDR block from raw bytes.
+    ///
+    /// Parameters:
+    ///   bytes: Raw payload data from the block
+    ///
     /// Returns: Parsed Fhdr structure or error
     pub fn parseFromBytes(bytes: []const u8) !Fhdr {
         if (bytes.len < 20) {

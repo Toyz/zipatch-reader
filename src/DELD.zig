@@ -1,21 +1,24 @@
 const std = @import("std");
+const fs = std.fs;
 const log = std.log;
 const mem = std.mem;
-const fs = std.fs;
-const fs_path = std.fs.path;
-const Allocator = std.mem.Allocator;
+const Allocator = mem.Allocator;
 
-/// Represents a Delete Directory block in a ZiPatch file
-/// Used to remove directories during patch application
+/// Represents a Delete Directory (DELD) block in a ZiPatch file.
+/// Used to remove directories during patch application.
 pub const Deld = struct {
     /// Size of the directory path in bytes
     path_size: u32,
+
     /// Directory path as a null-terminated string
     path: []u8,
 
-    /// Parses a DELD block from raw bytes
-    /// bytes: Raw payload data from the block
-    /// allocator: Memory allocator for path allocation
+    /// Parses a DELD block from raw bytes.
+    ///
+    /// Parameters:
+    ///   bytes: Raw payload data from the block
+    ///   allocator: Memory allocator for path allocation
+    ///
     /// Returns: Parsed Deld structure or error
     pub fn parseFromBytes(bytes: []const u8, allocator: Allocator) !Deld {
         var offset: usize = 0;
@@ -29,6 +32,7 @@ pub const Deld = struct {
         const path_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
+        // Safety check to prevent allocation of unreasonably large paths
         if (path_size > 1024) {
             log.warn("Path size too large: {}", .{path_size});
             return error.PathSizeTooLarge;
@@ -42,7 +46,7 @@ pub const Deld = struct {
 
         var path = try allocator.alloc(u8, path_size + 1);
         @memcpy(path[0..path_size], bytes[offset .. offset + path_size]);
-        path[path_size] = 0;
+        path[path_size] = 0; // Null-terminate the string
         offset += path_size;
 
         return Deld{
@@ -51,14 +55,17 @@ pub const Deld = struct {
         };
     }
 
-    /// Deletes the directory specified in the DELD block if it exists
-    /// output_dir: Base output directory where the directory should be deleted from
-    /// allocator: Memory allocator for path operations
+    /// Deletes the directory specified in the DELD block if it exists.
+    ///
+    /// Parameters:
+    ///   output_dir: Base output directory where the directory should be deleted from
+    ///   allocator: Memory allocator for path operations
+    ///
     /// Returns: void on success or error on failure
     pub fn deleteDirectory(self: *const Deld, output_dir: []const u8, allocator: Allocator) !void {
         log.info("Deleting directory: {s}", .{self.path[0..self.path_size]});
 
-        const output_path = try fs_path.join(allocator, &[_][]const u8{ output_dir, self.path[0..self.path_size] });
+        const output_path = try fs.path.join(allocator, &[_][]const u8{ output_dir, self.path[0..self.path_size] });
         defer allocator.free(output_path);
 
         log.info("Deleting path: {s}", .{output_path});
@@ -92,9 +99,12 @@ pub const Deld = struct {
     }
 };
 
-/// Recursively deletes a directory and all its contents
-/// path: Path to the directory to delete
-/// allocator: Memory allocator for path operations
+/// Recursively deletes a directory and all its contents.
+///
+/// Parameters:
+///   path: Path to the directory to delete
+///   allocator: Memory allocator for path operations
+///
 /// Returns: void on success or error on failure
 fn deleteDirectoryRecursively(path: []const u8, allocator: Allocator) !void {
     var dir = fs.cwd().openDir(path, .{ .iterate = true }) catch |err| {

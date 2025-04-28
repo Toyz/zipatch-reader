@@ -1,21 +1,24 @@
 const std = @import("std");
 const log = std.log;
-const io = std.io;
 const mem = std.mem;
-const root = @import("root");
 
-/// Represents an Apply (APLY) block in a ZiPatch file
-/// Contains metadata about the patch application
+/// Represents an Apply (APLY) block in a ZiPatch file.
+/// Contains metadata about the patch application.
 pub const Aply = struct {
     /// First value in the APLY block
     value1: [4]u8,
+
     /// Second value in the APLY block
     value2: [4]u8,
+
     /// Third value in the APLY block
     value3: [4]u8,
 
-    /// Parses an APLY block from raw bytes
-    /// bytes: Raw payload data from the block
+    /// Parses an APLY block from raw bytes.
+    ///
+    /// Parameters:
+    ///   bytes: Raw payload data from the block
+    ///
     /// Returns: Parsed Aply structure or error
     pub fn parseFromBytes(bytes: []const u8) !Aply {
         if (bytes.len < 12) {
