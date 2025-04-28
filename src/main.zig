@@ -158,7 +158,7 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
     }
 
     while (true) {
-        const block_info = BlockInfo.read(reader) catch |err| {
+        var block_info = BlockInfo.read(reader) catch |err| {
             switch (err) {
                 error.EndOfStream => {
                     log.info("End of stream reached while reading BlockInfo.", .{});
@@ -181,8 +181,8 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
         }
 
         log.info("Found block type: {s}, Size: {}", .{ block_info.block_type.toString(), block_info.size });
-
-        try processBlockPayload(reader, block_info, output_dir, extract_files, show_table, &entries, allocator);
+        try processBlockPayload(reader, &block_info, output_dir, extract_files, show_table, &entries, allocator);
+        log.info("Processed block type: {s}, CRC: {d}", .{ block_info.block_type.toString(), block_info.crc });
     }
 
     if (show_table and entries.items.len > 0) {
@@ -190,7 +190,7 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
     }
 }
 
-fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []const u8, extract_files: bool, show_table: bool, entries: *std.ArrayList(Etry), allocator: Allocator) !void {
+fn processBlockPayload(reader: anytype, block_info: *BlockInfo, output_dir: []const u8, extract_files: bool, show_table: bool, entries: *std.ArrayList(Etry), allocator: Allocator) !void {
     const payload_size = block_info.size;
     const payload_buffer = try allocator.alloc(u8, payload_size);
     defer allocator.free(payload_buffer);
@@ -232,17 +232,22 @@ fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []con
 
             log.info("ETRY block: Path: {s}, Size: {}, Chunks: {}", .{ etry.path[0..etry.path_size], etry.path_size, etry.count });
 
+            // Add to entries list if showing table (deferred cleanup will handle these)
             if (show_table and etry.chunks.len > 0) {
                 try entries.append(etry);
-            } else if (extract_files) {
-                log.info("Attempting to extract file: {s} with {} chunks", .{ etry.path[0..etry.path_size], etry.chunks.len });
-                if (etry.chunks.len == 0) {
-                    log.warn("No chunks found for file: {s}", .{etry.path[0..etry.path_size]});
-                } else {
-                    try etry.saveAllChunks(output_dir, allocator);
-                    log.info("Extracted file: {s}", .{etry.path[0..etry.path_size]});
+            } else {
+                // Process for extraction if needed
+                if (extract_files) {
+                    log.info("Attempting to extract file: {s} with {} chunks", .{ etry.path[0..etry.path_size], etry.chunks.len });
+                    if (etry.chunks.len == 0) {
+                        log.warn("No chunks found for file: {s}", .{etry.path[0..etry.path_size]});
+                    } else {
+                        try etry.saveAllChunks(output_dir, allocator);
+                        log.info("Extracted file: {s}", .{etry.path[0..etry.path_size]});
+                    }
                 }
 
+                // Free if not added to entries list
                 allocator.free(etry.path);
                 for (etry.chunks) |chunk| {
                     allocator.free(chunk.data);
@@ -261,7 +266,7 @@ fn processBlockPayload(reader: anytype, block_info: BlockInfo, output_dir: []con
     try processCrc(reader, block_info);
 }
 
-fn processCrc(reader: anytype, block_info: BlockInfo) !void {
+fn processCrc(reader: anytype, block_info: *BlockInfo) !void {
     var crc_buffer: [4]u8 = undefined;
     const bytes_read_crc = try reader.readAll(&crc_buffer);
 
@@ -270,8 +275,8 @@ fn processCrc(reader: anytype, block_info: BlockInfo) !void {
         return error.UnexpectedEndOfFile;
     }
 
-    const crc = mem.readInt(u32, crc_buffer[0..4], .big);
-    _ = crc;
+    block_info.crc = mem.readInt(u32, crc_buffer[0..4], .big);
+    log.debug("Read CRC for block type {s}: 0x{X:0>8}", .{ block_info.block_type.toString(), block_info.crc });
 }
 
 fn processAllPatchesInDirectory(dir_path: []const u8, output_dir: []const u8, extract_files: bool, recursive_search: bool, allocator: Allocator) !void {
