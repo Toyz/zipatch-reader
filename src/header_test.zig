@@ -25,8 +25,8 @@ test "BlockType conversions" {
 
 test "BlockInfo read with valid data" {
     const data = [_]u8{
-        0x00, 0x00, 0x01, 0x00, // size = 256
-        'F', 'H', 'D', 'R', // block type = FHDR
+        0x00, 0x00, 0x01, 0x00,
+        'F', 'H', 'D', 'R',
     };
 
     var fbs = std.io.fixedBufferStream(&data);
