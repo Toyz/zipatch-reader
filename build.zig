@@ -43,6 +43,17 @@ pub fn build(b: *std.Build) void {
     const release_fast_install = b.addInstallArtifact(release_fast_exe, .{});
     release_fast_step.dependOn(&release_fast_install.step);
 
+    const release_small_step = b.step("release-small", "Build with release-small optimizations");
+    const release_small_exe = b.addExecutable(.{
+        .name = "zipatch_reader",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = .ReleaseSmall,
+    });
+    release_small_exe.root_module.addImport("clap", clap.module("clap"));
+    const release_small_install = b.addInstallArtifact(release_small_exe, .{});
+    release_small_step.dependOn(&release_small_install.step);
+
     const test_step = b.step("test", "Run unit tests");
 
     const test_files = [_][]const u8{

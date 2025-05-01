@@ -107,39 +107,32 @@ pub const Chunk = struct {
         var offset: usize = 0;
         var temp_buffer_u32: [4]u8 = undefined;
 
-        // Read chunk mode
         @memcpy(&temp_buffer_u32, bytes[offset .. offset + 4]);
         const mode_value = mem.readInt(u32, &temp_buffer_u32, .big);
         const mode = ChunkMode.fromU32(mode_value);
         offset += 4;
 
-        // Read previous hash
         var prev_hash: [20]u8 = undefined;
         @memcpy(&prev_hash, bytes[offset .. offset + 20]);
         offset += 20;
 
-        // Read next hash
         var next_hash: [20]u8 = undefined;
         @memcpy(&next_hash, bytes[offset .. offset + 20]);
         offset += 20;
 
-        // Read compression mode
         @memcpy(&temp_buffer_u32, bytes[offset .. offset + 4]);
         const compression_mode_value = mem.readInt(u32, &temp_buffer_u32, .big);
         const compression_mode = CompressionMode.fromU32(compression_mode_value);
         offset += 4;
 
-        // Read chunk size
         @memcpy(&temp_buffer_u32, bytes[offset .. offset + 4]);
         const size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
-        // Read previous size
         @memcpy(&temp_buffer_u32, bytes[offset .. offset + 4]);
         const prev_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
-        // Read next size
         @memcpy(&temp_buffer_u32, bytes[offset .. offset + 4]);
         const next_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
@@ -148,7 +141,6 @@ pub const Chunk = struct {
             return error.UnexpectedEndOfFile;
         }
 
-        // Copy chunk data
         const data = try allocator.alloc(u8, size);
         @memcpy(data, bytes[offset .. offset + size]);
 
@@ -317,7 +309,6 @@ pub const Etry = struct {
         var offset: usize = 0;
         var temp_buffer_u32: [4]u8 = undefined;
 
-        // Read path size
         if (bytes.len < offset + 4) {
             return error.UnexpectedEndOfFile;
         }
@@ -325,7 +316,6 @@ pub const Etry = struct {
         const path_size = mem.readInt(u32, &temp_buffer_u32, .big);
         offset += 4;
 
-        // Safety check to prevent allocation of unreasonably large paths
         if (path_size > 1024) {
             log.warn("Path size too large: {}", .{path_size});
             return error.PathSizeTooLarge;
@@ -337,13 +327,12 @@ pub const Etry = struct {
             return error.UnexpectedEndOfFile;
         }
 
-        // Copy path
         var path = try allocator.alloc(u8, path_size + 1);
+        errdefer allocator.free(path);
         @memcpy(path[0..path_size], bytes[offset .. offset + path_size]);
-        path[path_size] = 0; // Null-terminate the string
+        path[path_size] = 0;
         offset += path_size;
 
-        // Read chunk count
         if (bytes.len < offset + 4) {
             allocator.free(path);
             return error.UnexpectedEndOfFile;
@@ -355,14 +344,14 @@ pub const Etry = struct {
 
         log.debug("Chunk count: {}", .{count});
 
-        // Allocate chunks array
         var chunks = try allocator.alloc(Chunk, count);
         errdefer {
-            allocator.free(path);
+            for (chunks) |chunk| {
+                if (chunk.data.len > 0) allocator.free(chunk.data);
+            }
             allocator.free(chunks);
         }
 
-        // Parse each chunk
         if (count > 0) {
             var remaining_data = bytes[offset..];
             var chunk_offset: usize = 0;
@@ -421,48 +410,36 @@ pub const Etry = struct {
 
         log.info("Processing chunks for file: {s}", .{output_path});
 
-        // Handle DELETE operation
         if (self.chunks[0].mode == .delete) {
             log.info("Delete operation detected for file: {s}", .{output_path});
+
             fs.cwd().deleteFile(output_path) catch |err| {
-                if (err != error.FileNotFound) {
-                    log.err("Failed to delete file: {s}, error: {}", .{ output_path, err });
-                    return err;
+                if (err == error.FileNotFound) {
+                    log.warn("File not found: {s}", .{output_path});
+                    log.info("Extracted file: {s}", .{self.path[0..self.path_size]});
+                    return;
                 }
-                log.info("File not found for deletion: {s}", .{output_path});
+                log.err("Failed to delete file: {s}, error: {}", .{ output_path, err });
+                return err;
             };
-            log.info("File deleted or not found: {s}", .{output_path});
+
+            log.info("File successfully deleted: {s}", .{output_path});
+            log.info("Extracted file: {s}", .{self.path[0..self.path_size]});
             return;
         }
 
-        // Create parent directories
         try createParentDirectories(output_path);
 
-        // Handle MODIFY operation
         if (self.chunks[0].mode == .modify) {
             log.info("Modify operation detected for file: {s}", .{output_path});
 
-            const file_exists = check_file_exists: {
-                const file = fs.cwd().openFile(output_path, .{}) catch |err| {
-                    if (err == error.FileNotFound) {
-                        log.warn("File not found for modification: {s}", .{output_path});
-                        break :check_file_exists false;
-                    }
-                    log.err("Failed to open file for modification: {s}, error: {}", .{ output_path, err });
-                    return err;
-                };
-                defer file.close();
-                break :check_file_exists true;
-            };
-
-            if (!file_exists) {
-                log.warn("Cannot modify non-existent file: {s}, treating as ADD", .{output_path});
+            if (!try verifyExistingFileHash(output_path, &self.chunks[0].prev_hash, allocator)) {
+                log.warn("Cannot modify file: {s}, hash verification failed or file not found", .{output_path});
+                log.warn("Will proceed with modification, but result may be incorrect", .{});
             } else {
-                log.info("Existing file found for modification: {s}", .{output_path});
+                log.info("Existing file hash verified for modification: {s}", .{output_path});
             }
-        }
-        // Handle ADD operation
-        else if (self.chunks[0].mode == .add) {
+        } else if (self.chunks[0].mode == .add) {
             log.info("Add operation detected for file: {s}", .{output_path});
 
             const file_exists = check_file_exists: {
@@ -484,15 +461,12 @@ pub const Etry = struct {
             log.warn("Unknown operation mode: {s} for file: {s}", .{ self.chunks[0].mode.toString(), output_path });
         }
 
-        // Create output file
         const file = try fs.cwd().createFile(output_path, .{});
         defer file.close();
 
-        // Track all data written to file for hash verification
         var all_data = std.ArrayList(u8).init(allocator);
         defer all_data.deinit();
 
-        // Process each chunk
         for (self.chunks, 0..) |chunk, i| {
             log.info("Processing chunk {}/{} (mode: {s}) for file: {s}", .{ i + 1, self.chunks.len, chunk.mode.toString(), output_path });
 
@@ -507,8 +481,7 @@ pub const Etry = struct {
             try all_data.appendSlice(chunk_data);
         }
 
-        // Verify SHA1 hash if chunks were processed
-        if (self.chunks.len > 0) {
+        if (self.chunks.len > 0 and self.chunks[0].mode != .delete) {
             const last_chunk = self.chunks[self.chunks.len - 1];
             log.info("Verifying SHA1 hash for file: {s}", .{output_path});
 
@@ -518,15 +491,94 @@ pub const Etry = struct {
             sha1.final(&file_hash);
 
             if (!mem.eql(u8, &file_hash, &last_chunk.next_hash)) {
-                log.err("SHA1 hash verification failed for file: {s}", .{output_path});
-                log.err("Expected: {X}", .{std.fmt.fmtSliceHexUpper(&last_chunk.next_hash)});
-                log.err("Got: {X}", .{std.fmt.fmtSliceHexUpper(&file_hash)});
-                log.warn("File may be corrupted", .{});
-            } else {
-                log.info("SHA1 hash verification successful for file: {s}", .{output_path});
+                const is_empty_file_zero_hash = all_data.items.len == 0;
+                var is_zero_hash = true;
+                for (last_chunk.next_hash) |b| {
+                    if (b != 0) {
+                        is_zero_hash = false;
+                        break;
+                    }
+                }
+
+                if (!is_empty_file_zero_hash or !is_zero_hash) {
+                    log.err("Final hash verification failed for file: {s}", .{output_path});
+                    log.err("Expected next hash: {X}", .{std.fmt.fmtSliceHexUpper(&last_chunk.next_hash)});
+                    log.err("Got: {X}", .{std.fmt.fmtSliceHexUpper(&file_hash)});
+                    return error.HashVerificationFailed;
+                }
             }
+
+            log.info("Final hash verification successful for file: {s}", .{output_path});
         }
 
         log.info("Successfully saved file: {s}", .{output_path});
+    }
+
+    /// Verifies that an existing file matches the expected hash
+    /// Returns true if either:
+    /// 1. The file exists and its hash matches the expected hash
+    /// 2. The expected hash is all zeros (indicating new file) and the file doesn't exist
+    ///
+    /// Parameters:
+    ///   file_path: Path to the file to verify
+    ///   expected_hash: Expected SHA1 hash of the file
+    ///   allocator: Memory allocator for file operations
+    ///
+    /// Returns: true if the conditions above are met, false otherwise
+    fn verifyExistingFileHash(file_path: []const u8, expected_hash: *const [20]u8, allocator: Allocator) !bool {
+        var is_zero_hash = true;
+        for (expected_hash) |b| {
+            if (b != 0) {
+                is_zero_hash = false;
+                break;
+            }
+        }
+
+        const file = fs.cwd().openFile(file_path, .{}) catch |err| {
+            if (err == error.FileNotFound) {
+                if (is_zero_hash) {
+                    return true;
+                }
+                log.warn("File not found: {s}", .{file_path});
+                return false;
+            }
+            return err;
+        };
+        defer file.close();
+
+        if (is_zero_hash) {
+            log.warn("File exists but expected new file (zero hash): {s}", .{file_path});
+            return false;
+        }
+
+        const file_size = try file.getEndPos();
+        if (file_size > 100 * 1024 * 1024) {
+            log.warn("File too large to verify hash: {s} ({} bytes)", .{ file_path, file_size });
+            return false;
+        }
+
+        const file_data = try allocator.alloc(u8, @intCast(file_size));
+        defer allocator.free(file_data);
+
+        const bytes_read = try file.readAll(file_data);
+        if (bytes_read != file_size) {
+            log.warn("Failed to read entire file: {s}", .{file_path});
+            return false;
+        }
+
+        var sha1 = std.crypto.hash.Sha1.init(.{});
+        sha1.update(file_data);
+        var file_hash: [20]u8 = undefined;
+        sha1.final(&file_hash);
+
+        if (!mem.eql(u8, &file_hash, expected_hash)) {
+            log.warn("Previous hash mismatch for file: {s}", .{file_path});
+            log.warn("Expected previous hash: {s}", .{std.fmt.fmtSliceHexUpper(expected_hash)});
+            log.warn("Got: {s}", .{std.fmt.fmtSliceHexUpper(&file_hash)});
+            return false;
+        }
+
+        log.info("Previous hash verified for file: {s}", .{file_path});
+        return true;
     }
 };

@@ -25,6 +25,14 @@ const BlockInfo = header.BlockInfo;
 const ZipatchFileMagic = [_]u8{ 0x91, 'Z', 'I', 'P', 'A', 'T', 'C', 'H', 0x0D, 0x0A, 0x1A, 0x0A };
 
 /// Set the default log level to "info"
+pub const default_level: std.log.Level = switch (std.builtin.mode) {
+    .Debug => .debug,
+    .ReleaseSafe => .notice,
+    .ReleaseFast => .info,
+    .ReleaseSmall => .info,
+};
+
+/// Set the default log level to "info" for all loggers
 pub const log_level: std.log.Level = .info;
 
 /// Main entry point for the ZiPatch reader application
@@ -229,14 +237,27 @@ fn processBlockPayload(reader: anytype, block_info: *BlockInfo, output_dir: []co
         },
         .ETRY => {
             var etry = try Etry.parseFromBytes(payload_buffer, allocator);
+            errdefer {
+                allocator.free(etry.path);
+                for (etry.chunks) |chunk| {
+                    if (chunk.data.len > 0) allocator.free(chunk.data);
+                }
+                allocator.free(etry.chunks);
+            }
 
             log.info("ETRY block: Path: {s}, Size: {}, Chunks: {}", .{ etry.path[0..etry.path_size], etry.path_size, etry.count });
 
-            // Add to entries list if showing table (deferred cleanup will handle these)
             if (show_table and etry.chunks.len > 0) {
                 try entries.append(etry);
             } else {
-                // Process for extraction if needed
+                defer {
+                    allocator.free(etry.path);
+                    for (etry.chunks) |chunk| {
+                        if (chunk.data.len > 0) allocator.free(chunk.data);
+                    }
+                    allocator.free(etry.chunks);
+                }
+
                 if (extract_files) {
                     log.info("Attempting to extract file: {s} with {} chunks", .{ etry.path[0..etry.path_size], etry.chunks.len });
                     if (etry.chunks.len == 0) {
@@ -246,13 +267,6 @@ fn processBlockPayload(reader: anytype, block_info: *BlockInfo, output_dir: []co
                         log.info("Extracted file: {s}", .{etry.path[0..etry.path_size]});
                     }
                 }
-
-                // Free if not added to entries list
-                allocator.free(etry.path);
-                for (etry.chunks) |chunk| {
-                    allocator.free(chunk.data);
-                }
-                allocator.free(etry.chunks);
             }
         },
         .APFS => {
