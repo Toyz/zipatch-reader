@@ -152,6 +152,7 @@ fn verifyZipatchMagic(file: fs.File, file_path: []const u8) !void {
 fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []const u8, extract_files: bool, show_table: bool, allocator: Allocator) !void {
     _ = file_path;
     const reader = file.reader();
+    const file_size = try file.getEndPos();
 
     var entries = std.ArrayList(Etry).init(allocator);
     defer {
@@ -165,7 +166,9 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
         entries.deinit();
     }
 
-    while (true) {
+    var current_size: usize = 12;
+
+    while (current_size < file_size) {
         var block_info = BlockInfo.read(reader) catch |err| {
             switch (err) {
                 error.EndOfStream => {
@@ -191,6 +194,19 @@ fn processZipatchBlocks(file: fs.File, file_path: []const u8, output_dir: []cons
         log.info("Found block type: {s}, Size: {}", .{ block_info.block_type.toString(), block_info.size });
         try processBlockPayload(reader, &block_info, output_dir, extract_files, show_table, &entries, allocator);
         log.info("Processed block type: {s}, CRC: {d}", .{ block_info.block_type.toString(), block_info.crc });
+
+        // Update current_size: 8 bytes for block header + payload size + 4 bytes for CRC
+        current_size += 8 + block_info.size + 4;
+
+        if (current_size >= file_size) {
+            log.info("Reached end of file at position {}", .{current_size});
+            break;
+        }
+    }
+
+    if (current_size != file_size) {
+        log.err("File size mismatch: expected {d}, got {d}", .{ file_size, current_size });
+        return error.FileSizeMismatch;
     }
 
     if (show_table and entries.items.len > 0) {
