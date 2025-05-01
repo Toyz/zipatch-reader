@@ -56,37 +56,28 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
 
-    const test_files = [_][]const u8{
-        "src/ETRY.zig",
-        "src/header.zig",
-        "src/ADIR.zig",
-        "src/APLY.zig",
-        "src/DELD.zig",
-        "src/FHDR.zig",
-    };
+    const src_dir = b.pathFromRoot("src");
 
-    const dedicated_test_files = [_][]const u8{
-        "src/ETRY_test.zig",
-        "src/header_test.zig",
-    };
+    var dir = std.fs.openDirAbsolute(src_dir, .{ .iterate = true }) catch @panic("Failed to open src directory");
+    defer dir.close();
 
-    for (test_files) |file| {
+    var it = dir.iterate();
+    while (it.next() catch @panic("Failed to iterate src directory")) |entry| {
+        if (entry.kind != .file) continue;
+
+        const is_zig_file = std.mem.endsWith(u8, entry.name, ".zig");
+        if (!is_zig_file) continue;
+
+        const file_path = b.fmt("src/{s}", .{entry.name});
+
+        if (std.mem.eql(u8, entry.name, "main.zig")) continue;
+
         const file_test = b.addTest(.{
-            .root_source_file = b.path(file),
+            .root_source_file = b.path(file_path),
             .target = target,
             .optimize = optimize,
         });
-
-        const run_test = b.addRunArtifact(file_test);
-        test_step.dependOn(&run_test.step);
-    }
-
-    for (dedicated_test_files) |file| {
-        const file_test = b.addTest(.{
-            .root_source_file = b.path(file),
-            .target = target,
-            .optimize = optimize,
-        });
+        file_test.root_module.addImport("clap", clap.module("clap"));
 
         const run_test = b.addRunArtifact(file_test);
         test_step.dependOn(&run_test.step);
